@@ -18,14 +18,12 @@ router.post('/login', async (req, res) => {
 
     const agent = result.rows[0];
 
-    // Compare le password reçu avec le hash stocké
-    const isMatch = await bcrypt.compare(password, agent.password);
+       const isMatch = await bcrypt.compare(password, agent.password);
 
     if (!isMatch) {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
     }
 
-    // Succès, on peut renvoyer l'agent sans le password
     const { password: pwd, ...agentSafe } = agent;
 
     return res.json({ message: 'Connexion réussie', agent: agentSafe });
