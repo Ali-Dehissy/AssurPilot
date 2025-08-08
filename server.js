@@ -2,7 +2,7 @@
   const cors = require('cors');
   const db = require('./db');
   const clientsRouter = require('./routes/clients');
-  const authRouter = require('./routes/auth');
+  const loginRouter = require('./routes/login');
   const app = express();
 
   app.use(cors());
@@ -13,7 +13,7 @@
   });
 
   app.use('/api/clients', clientsRouter);
-  app.use('/api', authRouter);
+  app.use('/api', loginRouter);
 
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
