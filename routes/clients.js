@@ -1,7 +1,6 @@
-// routes/clients.js
 const express = require('express');
 const router = express.Router();
-const { db } = require('../db');
+const db = require('../db'); // Correct import
 
 router.post('/', async (req, res) => {
   const client = req.body;
@@ -25,7 +24,7 @@ router.post('/', async (req, res) => {
     client.date_delivrance, client.lieu_delivrance, client.genre, client.civilite, client.nom, client.prenom, client.etat_civil,
     client.nationalite, client.fixe, client.mobile, client.fax, client.email, client.statut_professionnel, client.profession,
     client.gouvernorat, client.ville, client.code_postal, client.adresse, client.adresse_pro,
-    client.agent_id // <== Ajout ici
+    client.agent_id
   ];
 
   try {
@@ -36,5 +35,18 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur.' });
   }
 });
+
+router.get('/agent/:agentId', async (req, res) => {
+  const { agentId } = req.params;
+  try {
+    const query = 'SELECT * FROM clients WHERE agent_id = $1';
+    const { rows } = await db.query(query, [agentId]);
+    res.json(rows);
+  } catch (err) {
+    console.error('Erreur PostgreSQL:', err);
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
 
 module.exports = router;
