@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-router.get('/performance/ca/vie', async (req, res) => {
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+
+router.get('/ca/vie', async (req, res) => {
   try {
     const result = await db.query(`
       SELECT
@@ -20,7 +24,7 @@ router.get('/performance/ca/vie', async (req, res) => {
   }
 });
 
-router.get('/performance/ca/auto', async (req, res) => {
+router.get('/ca/auto', async (req, res) => {
   try {
     const result = await db.query(`
       SELECT
