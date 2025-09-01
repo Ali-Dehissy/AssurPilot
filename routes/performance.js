@@ -2,10 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-const express = require('express');
-const router = express.Router();
-const db = require('../db');
-
 router.get('/ca/vie', async (req, res) => {
   try {
     const result = await db.query(`
