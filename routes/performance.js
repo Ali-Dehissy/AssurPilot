@@ -133,39 +133,39 @@ router.get('/nouveaux-contrats', async (req, res) => {
 
 router.get('/kpis', async (req, res) => {
   try {
-    const totalContratsResult = await db.query(`
-      SELECT 
-        (SELECT COUNT(*) FROM souscription_vie) +
-        (SELECT COUNT(*) FROM souscription_auto) AS total_contrats
+    const contratsResult = await db.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE id_agent = 1) AS total_contrats,
+        SUM(CASE WHEN date_creation_client >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END) AS contrats_mois
+      FROM souscription_vie
     `);
-    const total_contrats = totalContratsResult.rows[0].total_contrats || 0;
 
-    const offresResult = await db.query(`
-      SELECT SUM(offres_envoyees) AS total_offres FROM activite
-    `);
-    const total_offres = offresResult.rows[0]?.total_offres || 1; // éviter division par 0
-    const taux_conversion = Math.round((total_contrats / total_offres) * 100);
-
-    // Activité commerciale
     const activiteResult = await db.query(`
-      SELECT 
-        SUM(appels) AS appels, 
-        SUM(rdvs) AS rdvs, 
-        SUM(offres_envoyees) AS offres_envoyees 
-      FROM activite
+      SELECT
+        SUM(appels) AS appels,
+        SUM(rendez_vous) AS rdvs,
+        SUM(offres_envoyees) AS offres_envoyees
+      FROM activite_commerciale
+      WHERE id_agent = 1
     `);
-    const activite = activiteResult.rows[0] || { appels: 0, rdvs: 0, offres_envoyees: 0 };
+
+    const total_contrats = parseInt(contratsResult.rows[0].total_contrats || 0);
+    const taux_conversion = total_contrats ? Math.round((contratsResult.rows[0].contrats_mois / total_contrats) * 100) : 0;
 
     res.json({
       total_contrats,
       taux_conversion,
-      activite
+      activite: {
+        appels: parseInt(activiteResult.rows[0].appels || 0),
+        rdvs: parseInt(activiteResult.rows[0].rdvs || 0),
+        offres_envoyees: parseInt(activiteResult.rows[0].offres_envoyees || 0),
+      }
     });
-
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur KPIs' });
+    console.error('Erreur KPIs :', err);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
 
 module.exports = router;
