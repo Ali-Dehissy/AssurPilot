@@ -133,28 +133,24 @@ router.get('/nouveaux-contrats', async (req, res) => {
 
 router.get('/kpis', async (req, res) => {
   try {
-    const caAuto = await db.query(`SELECT SUM(prime) AS ca_totale, COUNT(*) AS total_contrats FROM souscription_auto`);
-    const caVie = await db.query(`SELECT SUM(prime) AS ca_totale, COUNT(*) AS total_contrats FROM souscription_vie`);
+    const caAutoRes = await db.query(`SELECT SUM(prime) AS ca_totale, COUNT(*) AS total_contrats FROM souscription_auto`);
+    const caAutoTotale = parseInt(caAutoRes.rows[0].ca_totale) || 0;
+    const totalContratsAuto = parseInt(caAutoRes.rows[0].total_contrats) || 0;
+    
+    const caVieRes = await db.query(`SELECT SUM(prime) AS ca_totale, COUNT(*) AS total_contrats FROM souscription_vie`);
+    const caVieTotale = parseInt(caVieRes.rows[0].ca_totale) || 0;
+    const totalContratsVie = parseInt(caVieRes.rows[0].total_contrats) || 0;
 
-    let activite = { appels: 0, rdvs: 0, offres_envoyees: 0 };
-    try {
-      const activiteRes = await db.query(`SELECT SUM(appels) AS appels, SUM(rdvs) AS rdvs, SUM(offres_envoyees) AS offres_envoyees FROM activite_commerciale`);
-      activite = activiteRes.rows[0];
-    } catch {}
+    const totalContrats = totalContratsAuto + totalContratsVie;
+    const tauxConversion = totalContrats > 0 ? 100 : 0;
 
     res.json({
-      auto: {
-        total_contrats: parseInt(caAuto.rows[0].total_contrats) || 0,
-        ca_totale: parseInt(caAuto.rows[0].ca_totale) || 0,
-      },
-      vie: {
-        total_contrats: parseInt(caVie.rows[0].total_contrats) || 0,
-        ca_totale: parseInt(caVie.rows[0].ca_totale) || 0,
-      },
+      auto: { total_contrats: totalContratsAuto, ca_totale: caAutoTotale },
+      vie: { total_contrats: totalContratsVie, ca_totale: caVieTotale },
       total: {
-        total_contrats: (parseInt(caAuto.rows[0].total_contrats) || 0) + (parseInt(caVie.rows[0].total_contrats) || 0),
-        ca_totale: (parseInt(caAuto.rows[0].ca_totale) || 0) + (parseInt(caVie.rows[0].ca_totale) || 0),
-        activite
+        total_contrats: totalContrats,
+        ca_totale: caAutoTotale + caVieTotale,
+        taux_conversion: tauxConversion
       }
     });
   } catch (err) {
@@ -162,7 +158,5 @@ router.get('/kpis', async (req, res) => {
     res.status(500).json({ error: 'Impossible de récupérer les KPIs' });
   }
 });
-
-
 
 module.exports = router;
