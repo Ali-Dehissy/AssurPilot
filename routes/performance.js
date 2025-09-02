@@ -40,6 +40,73 @@ router.get('/ca/auto', async (req, res) => {
   }
 });
 
+router.get("/ca", async (req, res) => {
+  try {
+    const autoJour = await db.query(`
+      SELECT COALESCE(SUM(prime), 0) AS total
+      FROM souscription_auto
+      WHERE DATE(date_creation_client) = CURRENT_DATE
+    `);
+
+    const autoSemaine = await db.query(`
+      SELECT COALESCE(SUM(prime), 0) AS total
+      FROM souscription_auto
+      WHERE DATE_TRUNC('week', date_creation_client) = DATE_TRUNC('week', CURRENT_DATE)
+    `);
+
+    const autoMois = await db.query(`
+      SELECT COALESCE(SUM(prime), 0) AS total
+      FROM souscription_auto
+      WHERE DATE_TRUNC('month', date_creation_client) = DATE_TRUNC('month', CURRENT_DATE)
+    `);
+
+    const autoAnnee = await db.query(`
+      SELECT COALESCE(SUM(prime), 0) AS total
+      FROM souscription_auto
+      WHERE DATE_TRUNC('year', date_creation_client) = DATE_TRUNC('year', CURRENT_DATE)
+    `);
+
+    const vieJour = await db.query(`
+      SELECT COALESCE(SUM(prime), 0) AS total
+      FROM souscription_vie
+      WHERE DATE(date_creation_client) = CURRENT_DATE
+    `);
+
+    const vieSemaine = await db.query(`
+      SELECT COALESCE(SUM(prime), 0) AS total
+      FROM souscription_vie
+      WHERE DATE_TRUNC('week', date_creation_client) = DATE_TRUNC('week', CURRENT_DATE)
+    `);
+
+    const vieMois = await db.query(`
+      SELECT COALESCE(SUM(prime), 0) AS total
+      FROM souscription_vie
+      WHERE DATE_TRUNC('month', date_creation_client) = DATE_TRUNC('month', CURRENT_DATE)
+    `);
+
+    const vieAnnee = await db.query(`
+      SELECT COALESCE(SUM(prime), 0) AS total
+      FROM souscription_vie
+      WHERE DATE_TRUNC('year', date_creation_client) = DATE_TRUNC('year', CURRENT_DATE)
+    `);
+
+    res.json({
+      auto_aujourdhui: autoJour.rows[0].total,
+      auto_semaine: autoSemaine.rows[0].total,
+      auto_mois: autoMois.rows[0].total,
+      auto_annee: autoAnnee.rows[0].total,
+      vie_aujourdhui: vieJour.rows[0].total,
+      vie_semaine: vieSemaine.rows[0].total,
+      vie_mois: vieMois.rows[0].total,
+      vie_annee: vieAnnee.rows[0].total
+    });
+  } catch (err) {
+    console.error("Erreur CA :", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+
 router.get('/nouveaux-contrats', async (req, res) => {
   try {
     const result = await db.query(`
