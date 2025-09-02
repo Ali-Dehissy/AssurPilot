@@ -131,4 +131,68 @@ router.get('/nouveaux-contrats', async (req, res) => {
   }
 });
 
+router.get('/dashboard', async (req, res) => {
+  try {
+     const caVieRes = await db.query(`
+      SELECT
+        SUM(CASE WHEN date_creation_client::date = CURRENT_DATE THEN prime ELSE 0 END) AS aujourdhui,
+        SUM(CASE WHEN date_creation_client >= date_trunc('week', CURRENT_DATE) THEN prime ELSE 0 END) AS semaine,
+        SUM(CASE WHEN date_creation_client >= date_trunc('month', CURRENT_DATE) THEN prime ELSE 0 END) AS mois,
+        SUM(CASE WHEN date_creation_client >= date_trunc('year', CURRENT_DATE) THEN prime ELSE 0 END) AS annee
+      FROM souscription_vie
+      WHERE id_agent = 1;
+    `);
+
+    const caAutoRes = await db.query(`
+      SELECT
+        SUM(CASE WHEN date_creation_client::date = CURRENT_DATE THEN prime ELSE 0 END) AS aujourdhui,
+        SUM(CASE WHEN date_creation_client >= date_trunc('week', CURRENT_DATE) THEN prime ELSE 0 END) AS semaine,
+        SUM(CASE WHEN date_creation_client >= date_trunc('month', CURRENT_DATE) THEN prime ELSE 0 END) AS mois,
+        SUM(CASE WHEN date_creation_client >= date_trunc('year', CURRENT_DATE) THEN prime ELSE 0 END) AS annee
+      FROM souscription_auto
+      WHERE id_agent = 1;
+    `);
+
+    const contratsVieRes = await db.query(`
+      SELECT COUNT(*) AS nouveaux
+      FROM souscription_vie
+      WHERE id_agent = 1
+        AND date_creation_client::date = CURRENT_DATE;
+    `);
+
+     const contratsAutoRes = await db.query(`
+      SELECT COUNT(*) AS nouveaux
+      FROM souscription_auto
+      WHERE id_agent = 1
+        AND date_creation_client::date = CURRENT_DATE;
+    `);
+
+    const tauxConversion = 28;
+
+    const activite = {
+      appels: 24,
+      rdvs: 8,
+      offres_envoyees: 15
+    };
+
+    // Retour JSON global
+    res.json({
+      ca: {
+        vie: caVieRes.rows[0],
+        auto: caAutoRes.rows[0]
+      },
+      nouveaux_contrats: {
+        vie: parseInt(contratsVieRes.rows[0].nouveaux),
+        auto: parseInt(contratsAutoRes.rows[0].nouveaux)
+      },
+      taux_conversion: tauxConversion,
+      activite_commerciale: activite
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 module.exports = router;
