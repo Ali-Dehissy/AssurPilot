@@ -42,23 +42,22 @@ router.get('/ca/auto', async (req, res) => {
 
 router.get('/nouveaux-contrats', async (req, res) => {
   try {
-    const resultVie = await db.query(`
-      SELECT COUNT(*) AS nb_contrats_vie
-      FROM souscription_vie
-      WHERE date_creation_client::date = CURRENT_DATE;
+    const result = await db.query(`
+      SELECT
+        -- AUTO
+        (SELECT COUNT(*) FROM souscription_auto WHERE date_creation_client::date = CURRENT_DATE) AS auto_aujourdhui,
+        (SELECT COUNT(*) FROM souscription_auto WHERE date_creation_client >= date_trunc('week', CURRENT_DATE)) AS auto_semaine,
+        (SELECT COUNT(*) FROM souscription_auto WHERE date_creation_client >= date_trunc('month', CURRENT_DATE)) AS auto_mois,
+        (SELECT COUNT(*) FROM souscription_auto WHERE date_creation_client >= date_trunc('year', CURRENT_DATE)) AS auto_annee,
+
+        -- VIE
+        (SELECT COUNT(*) FROM souscription_vie WHERE date_creation_client::date = CURRENT_DATE) AS vie_aujourdhui,
+        (SELECT COUNT(*) FROM souscription_vie WHERE date_creation_client >= date_trunc('week', CURRENT_DATE)) AS vie_semaine,
+        (SELECT COUNT(*) FROM souscription_vie WHERE date_creation_client >= date_trunc('month', CURRENT_DATE)) AS vie_mois,
+        (SELECT COUNT(*) FROM souscription_vie WHERE date_creation_client >= date_trunc('year', CURRENT_DATE)) AS vie_annee
     `);
 
-    const resultAuto = await db.query(`
-      SELECT COUNT(*) AS nb_contrats_auto
-      FROM souscription_auto
-      WHERE date_creation_client::date = CURRENT_DATE
-        AND id_agent = 1;
-    `);
-
-    res.json({
-      vie: parseInt(resultVie.rows[0].nb_contrats_vie, 10),
-      auto: parseInt(resultAuto.rows[0].nb_contrats_auto, 10)
-    });
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
