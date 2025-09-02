@@ -131,67 +131,40 @@ router.get('/nouveaux-contrats', async (req, res) => {
   }
 });
 
-router.get('/dashboard', async (req, res) => {
+router.get('/kpis', async (req, res) => {
   try {
-     const caVieRes = await db.query(`
-      SELECT
-        SUM(CASE WHEN date_creation_client::date = CURRENT_DATE THEN prime ELSE 0 END) AS aujourdhui,
-        SUM(CASE WHEN date_creation_client >= date_trunc('week', CURRENT_DATE) THEN prime ELSE 0 END) AS semaine,
-        SUM(CASE WHEN date_creation_client >= date_trunc('month', CURRENT_DATE) THEN prime ELSE 0 END) AS mois,
-        SUM(CASE WHEN date_creation_client >= date_trunc('year', CURRENT_DATE) THEN prime ELSE 0 END) AS annee
-      FROM souscription_vie
-      WHERE id_agent = 1;
+    const totalContratsResult = await db.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM souscription_vie) +
+        (SELECT COUNT(*) FROM souscription_auto) AS total_contrats
     `);
+    const total_contrats = totalContratsResult.rows[0].total_contrats || 0;
 
-    const caAutoRes = await db.query(`
-      SELECT
-        SUM(CASE WHEN date_creation_client::date = CURRENT_DATE THEN prime ELSE 0 END) AS aujourdhui,
-        SUM(CASE WHEN date_creation_client >= date_trunc('week', CURRENT_DATE) THEN prime ELSE 0 END) AS semaine,
-        SUM(CASE WHEN date_creation_client >= date_trunc('month', CURRENT_DATE) THEN prime ELSE 0 END) AS mois,
-        SUM(CASE WHEN date_creation_client >= date_trunc('year', CURRENT_DATE) THEN prime ELSE 0 END) AS annee
-      FROM souscription_auto
-      WHERE id_agent = 1;
+    const offresResult = await db.query(`
+      SELECT SUM(offres_envoyees) AS total_offres FROM activite
     `);
+    const total_offres = offresResult.rows[0]?.total_offres || 1; // éviter division par 0
+    const taux_conversion = Math.round((total_contrats / total_offres) * 100);
 
-    const contratsVieRes = await db.query(`
-      SELECT COUNT(*) AS nouveaux
-      FROM souscription_vie
-      WHERE id_agent = 1
-        AND date_creation_client::date = CURRENT_DATE;
+    // Activité commerciale
+    const activiteResult = await db.query(`
+      SELECT 
+        SUM(appels) AS appels, 
+        SUM(rdvs) AS rdvs, 
+        SUM(offres_envoyees) AS offres_envoyees 
+      FROM activite
     `);
+    const activite = activiteResult.rows[0] || { appels: 0, rdvs: 0, offres_envoyees: 0 };
 
-     const contratsAutoRes = await db.query(`
-      SELECT COUNT(*) AS nouveaux
-      FROM souscription_auto
-      WHERE id_agent = 1
-        AND date_creation_client::date = CURRENT_DATE;
-    `);
-
-    const tauxConversion = 28;
-
-    const activite = {
-      appels: 24,
-      rdvs: 8,
-      offres_envoyees: 15
-    };
-
-    // Retour JSON global
     res.json({
-      ca: {
-        vie: caVieRes.rows[0],
-        auto: caAutoRes.rows[0]
-      },
-      nouveaux_contrats: {
-        vie: parseInt(contratsVieRes.rows[0].nouveaux),
-        auto: parseInt(contratsAutoRes.rows[0].nouveaux)
-      },
-      taux_conversion: tauxConversion,
-      activite_commerciale: activite
+      total_contrats,
+      taux_conversion,
+      activite
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: 'Erreur serveur KPIs' });
   }
 });
 
